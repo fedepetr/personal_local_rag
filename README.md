@@ -40,5 +40,53 @@ Questo progetto implementa un RAG (Retrieval-Augmented Generation) interamente i
    python scripts/test_rag_answer.py
    ```
 
+**Diagrammi**
+
+Diagramma semplice
+```mermaid
+flowchart LR
+  A[Documenti] --> B[Estrazione testo+immagini]
+  B --> C[Embedding testo]
+  B --> D[Embedding immagini]
+  C --> E[Qdrant: rag_text]
+  D --> F[Qdrant: rag_images]
+  G[Query] --> H[Search testo]
+  H --> I[Doc_id rilevanti]
+  G --> J[Search immagini]
+  J --> K[Filtro per doc_id]
+  K --> L[Immagini rilevanti]
+  H --> M[Contesto testuale]
+  L --> N[Contesto visivo]
+  M --> O[Contesto finale]
+  N --> O
+  O --> P[LLM]
+```
+
+Diagramma tecnico (con moduli reali)
+```mermaid
+flowchart TD
+  A[docs/*] --> B[rag.docling_ingest.extract_text_and_images]
+  B --> C[rag.embeddings_text_ollama.embed_text_batch]
+  B --> D[rag.embeddings_image_clip.embed_images]
+
+  C --> E[rag.qdrant_store.upsert -> QDRANT_COLLECTION]
+  D --> F[rag.qdrant_store.upsert_to_collection -> QDRANT_IMAGE_COLLECTION]
+
+  G[User query] --> H[rag.embeddings_text_ollama.embed_text_batch]
+  H --> I[rag.retrieval.Retriever.search -> rag_text]
+  I --> J[doc_id list]
+
+  G --> K[rag.embeddings_image_clip.embed_texts_for_images]
+  K --> L[rag.retrieval.Retriever.retrieve_images_for_docs -> rag_images]
+  L --> M[filter doc_id]
+
+  I --> N[text_context]
+  L --> O[images]
+  N --> P[final_context]
+  O --> P
+  P --> Q[LLM response]
+```
+
 **Note**
 - La dimensione dei chunk per l'embedding e configurabile direttamente negli script.
+

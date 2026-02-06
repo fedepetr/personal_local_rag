@@ -18,12 +18,13 @@ logs/
 *.log
 
 # Dati e output
-data/
+rag/_pycache_
+scripts/_pycache_
 datasets/
 outputs/
 checkpoints/
 models/
-wandb/
+docs/
 
 # IDE / OS
 .vscode/

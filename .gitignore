@@ -16,7 +16,7 @@ __pycache__/
 # Log e cache
 logs/
 *.log
-
+.txt
 # Dati e output
 rag/_pycache_/
 scripts//_pycache_/

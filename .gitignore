@@ -18,8 +18,8 @@ logs/
 *.log
 
 # Dati e output
-rag/_pycache_
-scripts/_pycache_
+rag/_pycache_/
+scripts//_pycache_/
 datasets/
 outputs/
 checkpoints/

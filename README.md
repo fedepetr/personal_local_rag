@@ -48,7 +48,7 @@ flowchart LR
   G[Query] --> H[Search testo]
   H --> I[Doc_id rilevanti]
   H --> J[Contesto testuale]
-  J --> K[Query immagini dal contesto]
+  J --> K[Query immagini (contesto + doc_id)]
   K --> L[Search immagini]
   L --> M[Filtro per doc_id]
   M --> N[Immagini rilevanti]
@@ -74,7 +74,7 @@ flowchart TD
   I --> J[doc_id list]
 
   I --> K[text_context]
-  K --> L[rag.embeddings_image_clip.embed_texts_for_images]
+  K --> L[rag.embeddings_image_clip.embed_texts_for_images (text_context + doc_id)]
   L --> M[rag.retrieval.Retriever.retrieve_images_for_docs -> rag_images]
   M --> N[filter doc_id]
 

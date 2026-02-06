@@ -129,7 +129,10 @@ class Retriever:
         doc_ids = list({c["doc_id"] for c in chunks if c.get("doc_id")})
 
         text_context = "\n\n---\n\n".join(c["text"] for c in chunks if c.get("text"))
-        image_query = text_context if text_context else query
+        # Include doc_id list in the image query to keep it anchored to the same sources.
+        doc_hint = " ".join(f"doc_id:{doc_id}" for doc_id in doc_ids)
+        base_query = text_context if text_context else query
+        image_query = f"{base_query}\n{doc_hint}".strip()
         images = self.retrieve_images_for_docs(image_query, doc_ids, top_k_images)
 
         return {

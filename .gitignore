@@ -1,0 +1,45 @@
+# Ambiente e pacchetti
+.venv/
+venv/
+env/
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.pytest_cache/
+
+# Config sensibili
+.env
+*.env
+.env.*
+
+# Log e cache
+logs/
+*.log
+
+# Dati e output
+data/
+datasets/
+outputs/
+checkpoints/
+models/
+wandb/
+
+# IDE / OS
+.vscode/
+.idea/
+*.code-workspace
+.DS_Store
+Thumbs.db
+
+# Python packaging/build
+build/
+dist/
+*.egg-info/
+
+# Notebook checkpoints
+.ipynb_checkpoints/
+
+# Immagini temporanee
+tmp/
+temp/

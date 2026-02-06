@@ -15,3 +15,9 @@ def upsert(points):
         collection_name=QDRANT_COLLECTION,
         points=points
     )
+
+def upsert_to_collection(points, collection_name: str):
+    client().upsert(
+        collection_name=collection_name,
+        points=points
+    )

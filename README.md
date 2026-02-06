@@ -1,113 +1,59 @@
 # RAG Project (Local)
 
-Questo progetto implementa un RAG (Retrieval-Augmented Generation) interamente in locale, con ingestion, embedding e retrieval su documenti PDF.
+Questo progetto implementa un sistema RAG (Retrieval-Augmented Generation) interamente in locale, pensato per indicizzare e interrogare documenti PDF senza dipendenze da servizi cloud. L’idea alla base è costruire una pipeline semplice ma solida che consenta ingestion, embedding e retrieval dei contenuti, mantenendo il controllo completo sui dati e sull’infrastruttura.
 
-**Stack e servizi**
-- Qdrant: vector database locale (via Docker) per lo storage degli embedding
-- Ollama:
-  - `embeddinggemma`: modello per l'embedding del testo
-  - `llama3.2`: LLM per il retrieval e la risposta
-- Docling: parser che converte PDF in HTML strutturato per preservare la struttura durante l'embedding
+Il sistema si basa su alcuni componenti principali:
+- Qdrant, utilizzato come vector database locale per memorizzare e interrogare gli embedding
+- Ollama, impiegato sia per la generazione degli embedding testuali sia per l’esecuzione del modello LLM
+- Docling, usato per convertire i PDF in contenuti strutturati, preservandone la struttura durante l’indicizzazione
 
-**Requisiti**
-- Python (virtual environment)
-- Docker (per Qdrant)
-- Ollama installato e avviato
-- Dipendenze Python in `requirements.txt`
+In particolare, lo stack tecnologico prevede:
+- Qdrant eseguito localmente tramite Docker
+- Ollama con il modello embeddinggemma per l’embedding del testo
+- Ollama con il modello llama3.2 per il retrieval e la generazione delle risposte
+- Un ambiente Python con virtual environment e dipendenze gestite tramite requirements.txt
 
-**Struttura del progetto**
-- `rag/`: librerie e codice per ingestion, embedding e retrieval
-- `scripts/`: script di test per ingestion ed esecuzione RAG
-- `docs/`: documenti da indicizzare (PDF)
+Per eseguire il progetto sono necessari:
+- Python 3.10 o superiore
+- Un virtual environment attivo
+- Docker installato e funzionante
+- Ollama installato e avviato in locale
 
-**Setup**
-1. Crea e attiva il virtual environment
-   ```powershell
-   .\.venv\Scripts\Activate.ps1
-   ```
-2. Installa le dipendenze
-   ```powershell
-   pip install -r requirements.txt
-   ```
+La struttura del progetto è organizzata in modo da separare chiaramente le responsabilità:
+- la cartella rag contiene il codice core per ingestion, embedding e retrieval
+- la cartella scripts raccoglie gli script di esecuzione e di test del flusso RAG
+- la cartella docs contiene i documenti PDF da indicizzare
 
-**Uso**
-1. Ingestion + embedding
-   ```powershell
-   python scripts/ingest.py
-   ```
-2. Retrieval (test di risposta RAG)
-   ```powershell
-   python scripts/test_rag_answer.py
-   ```
+Una volta clonato il repository, il flusso di utilizzo tipico è il seguente:
+- creazione e attivazione del virtual environment
+- installazione delle dipendenze Python
+- avvio dei servizi locali necessari (Qdrant e Ollama)
+- esecuzione dello script di ingestion per indicizzare i documenti
+- esecuzione dello script di retrieval per testare il sistema RAG
 
-# RAG Project (Local)
+Durante la fase di ingestion, i PDF presenti nella cartella docs vengono convertiti in contenuti strutturati, suddivisi in chunk e trasformati in embedding testuali e visivi. Questi embedding vengono poi salvati su Qdrant in collezioni separate, in modo da supportare un retrieval multimodale più flessibile.
 
-Questo progetto implementa un RAG (Retrieval-Augmented Generation) interamente in locale, con ingestion, embedding e retrieval su documenti PDF.
+Durante la fase di retrieval, la query dell’utente viene embeddizzata e confrontata con gli embedding presenti nel database. I contenuti più rilevanti vengono selezionati, il contesto testuale e visivo viene fuso e infine passato al modello LLM, che genera la risposta finale.
 
-**Stack e servizi**
-- Qdrant: vector database locale (via Docker) per lo storage degli embedding
-- Ollama:
-  - `embeddinggemma`: modello per l'embedding del testo
-  - `llama3.2`: LLM per il retrieval e la risposta
-- Docling: parser che converte PDF in HTML strutturato per preservare la struttura durante l'embedding
-
-**Requisiti**
-- Python (virtual environment)
-- Docker (per Qdrant)
-- Ollama installato e avviato
-- Dipendenze Python in `requirements.txt`
-
-**Struttura del progetto**
-- `rag/`: librerie e codice per ingestion, embedding e retrieval
-- `scripts/`: script di test per ingestion ed esecuzione RAG
-- `docs/`: documenti da indicizzare (PDF)
-
-**Setup**
-1. Crea e attiva il virtual environment
-   ```powershell
-   .\.venv\Scripts\Activate.ps1
-   ```
-2. Installa le dipendenze
-   ```powershell
-   pip install -r requirements.txt
-   ```
-
-**Uso**
-1. Ingestion + embedding
-   ```powershell
-   python scripts/ingest.py
-   ```
-2. Retrieval (test di risposta RAG)
-   ```powershell
-   python scripts/test_rag_answer.py
-   ```
-
-
-## 🧱 Architettura ad alto livello
+L’architettura complessiva del sistema è riassunta nel diagramma seguente.
 
 ```mermaid
 flowchart LR
-  A[Documenti PDF] --> B[Estrazione testo + immagini<br/>(Docling)]
-  B --> C[Embedding testo<br/>(Ollama - embeddinggemma)]
-  B --> D[Embedding immagini<br/>(Visual embedder: CLIP/SigLIP)]
-  C --> E[Qdrant: collezione rag_text]
-  D --> F[Qdrant: collezione rag_images]
-
-  G[Query utente] --> H[Embed query testuale]
-  H --> I[Similarità su rag_text]
-  I --> J[doc_id rilevanti]
-
-  G --> K[Embed per ricerca immagini]
-  K --> L[Similarità su rag_images]
+  A[Documenti PDF] --> B[Estrazione contenuti - Docling]
+  B --> C[Embedding testo - embeddinggemma]
+  B --> D[Embedding immagini - CLIP o SigLIP]
+  C --> E[Qdrant - collezione rag_text]
+  D --> F[Qdrant - collezione rag_images]
+  G[Query utente] --> H[Embedding query testuale]
+  H --> I[Ricerca similarità - rag_text]
+  I --> J[Documenti rilevanti]
+  G --> K[Embedding query visiva]
+  K --> L[Ricerca similarità - rag_images]
   L --> M[Filtro per doc_id]
-
   I --> N[Contesto testuale]
   M --> O[Contesto visivo]
-  N --> P[Fusione del contesto]
+  N --> P[Fusione contesto]
   O --> P
-
-  P --> Q[LLM (Ollama - llama3.2)]
+  P --> Q[LLM - llama3.2]
   Q --> R[Risposta finale]
-
-
-
+```

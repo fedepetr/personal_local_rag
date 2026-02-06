@@ -21,7 +21,7 @@ def main():
     dim = guess_dim()
     c.create_collection(
         collection_name=QDRANT_COLLECTION,
-        vectors_config={"text": VectorParams(size=dim, distance=Distance.COSINE)},
+        vectors_config={"dese": VectorParams(size=dim, distance=Distance.COSINE)},
     )
     print(f"Created '{QDRANT_COLLECTION}' with text dim={dim}")
 

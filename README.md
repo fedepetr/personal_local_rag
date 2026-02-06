@@ -35,25 +35,52 @@ Durante la fase di ingestion, i PDF presenti nella cartella docs vengono convert
 
 Durante la fase di retrieval, la query dell’utente viene embeddizzata e confrontata con gli embedding presenti nel database. I contenuti più rilevanti vengono selezionati, il contesto testuale e visivo viene fuso e infine passato al modello LLM, che genera la risposta finale.
 
-L’architettura complessiva del sistema è riassunta nel diagramma seguente.
+L???architettura complessiva del sistema ?? riassunta nei diagrammi seguenti.
 
+Diagramma semplice
 ```mermaid
 flowchart LR
-  A[Documenti PDF] --> B[Estrazione contenuti - Docling]
-  B --> C[Embedding testo - embeddinggemma]
-  B --> D[Embedding immagini - CLIP o SigLIP]
-  C --> E[Qdrant - collezione rag_text]
-  D --> F[Qdrant - collezione rag_images]
-  G[Query utente] --> H[Embedding query testuale]
-  H --> I[Ricerca similarità - rag_text]
-  I --> J[Documenti rilevanti]
-  G --> K[Embedding query visiva]
-  K --> L[Ricerca similarità - rag_images]
+  A[Documenti] --> B[Estrazione testo+immagini]
+  B --> C[Embedding testo]
+  B --> D[Embedding immagini]
+  C --> E[Qdrant: rag_text]
+  D --> F[Qdrant: rag_images]
+  G[Query] --> H[Search testo]
+  H --> I[Doc_id rilevanti]
+  H --> J[Contesto testuale]
+  J --> K[Query immagini dal contesto]
+  K --> L[Search immagini]
   L --> M[Filtro per doc_id]
-  I --> N[Contesto testuale]
-  M --> O[Contesto visivo]
-  N --> P[Fusione contesto]
-  O --> P
-  P --> Q[LLM - llama3.2]
-  Q --> R[Risposta finale]
+  M --> N[Immagini rilevanti]
+  J --> O[Contesto testuale]
+  N --> P[Contesto visivo]
+  O --> Q[Contesto finale]
+  P --> Q
+  Q --> R[LLM]
+```
+
+Diagramma tecnico (con moduli reali)
+```mermaid
+flowchart TD
+  A[docs/*] --> B[rag.docling_ingest.extract_text_and_images]
+  B --> C[rag.embeddings_text_ollama.embed_text_batch]
+  B --> D[rag.embeddings_image_clip.embed_images]
+
+  C --> E[rag.qdrant_store.upsert -> QDRANT_COLLECTION]
+  D --> F[rag.qdrant_store.upsert_to_collection -> QDRANT_IMAGE_COLLECTION]
+
+  G[User query] --> H[rag.embeddings_text_ollama.embed_text_batch]
+  H --> I[rag.retrieval.Retriever.search -> rag_text]
+  I --> J[doc_id list]
+
+  I --> K[text_context]
+  K --> L[rag.embeddings_image_clip.embed_texts_for_images]
+  L --> M[rag.retrieval.Retriever.retrieve_images_for_docs -> rag_images]
+  M --> N[filter doc_id]
+
+  K --> O[text_context]
+  M --> P[images]
+  O --> Q[final_context]
+  P --> Q
+  Q --> R[LLM response]
 ```

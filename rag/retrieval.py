@@ -127,9 +127,10 @@ class Retriever:
     def retrieve_context_with_images(self, query: str, top_k_text: int = 5, top_k_images: int = 3) -> dict:
         chunks = self.retrieve_chunks(query, top_k_text)
         doc_ids = list({c["doc_id"] for c in chunks if c.get("doc_id")})
-        images = self.retrieve_images_for_docs(query, doc_ids, top_k_images)
 
         text_context = "\n\n---\n\n".join(c["text"] for c in chunks if c.get("text"))
+        image_query = text_context if text_context else query
+        images = self.retrieve_images_for_docs(image_query, doc_ids, top_k_images)
 
         return {
             "text_context": text_context,

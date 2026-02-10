@@ -1,23 +1,23 @@
-### INFO DOCUMENTO 
-## questo script prende il documento in input ed estrae in chunk di demnsione regolabile. 
-## Serve per distinguere il testo dalle immagini, in modo da performare l'embedding nello stesso db vettoriale mappando insieme il testo e le immagini
-
-from docling.document_converter import DocumentConverter
-from langchain_text_splitters import RecursiveCharacterTextSplitter
 from pathlib import Path
 import hashlib
 
+import fitz  # PyMuPDF
+
+from docling.document_converter import DocumentConverter
+from langchain_text_splitters import RecursiveCharacterTextSplitter
+
 from rag.settings import IMAGES_DIR
+
 
 def doc_id_for(path: str) -> str:
     return hashlib.sha256(path.encode("utf-8")).hexdigest()[:24]
 
-def extract_text_chunks(file_path: str, chunk_size=2000, chunk_overlap=300) -> dict:
+
+def extract_text_chunks_docling(file_path: str, chunk_size=2000, chunk_overlap=300) -> dict:
     converter = DocumentConverter()
     result = converter.convert(file_path)
     doc = result.document
 
-    # testo strutturato (ottimo per RAG)
     md = doc.export_to_markdown()
 
     splitter = RecursiveCharacterTextSplitter(
@@ -33,70 +33,73 @@ def extract_text_chunks(file_path: str, chunk_size=2000, chunk_overlap=300) -> d
     }
 
 
-def extract_text_and_images(
-    file_path: str,
-    chunk_size: int = 2000,
-    chunk_overlap: int = 300,
-    images_dir: str = IMAGES_DIR,
-) -> dict:
-    converter = DocumentConverter()
-    result = converter.convert(file_path)
-    doc = result.document
+def extract_images_pymupdf(file_path: str, images_dir: str = IMAGES_DIR) -> list[dict]:
+    p = Path(file_path)
+    doc_id = doc_id_for(str(p))
 
-    md = doc.export_to_markdown()
-    splitter = RecursiveCharacterTextSplitter(
-        chunk_size=chunk_size,
-        chunk_overlap=chunk_overlap,
-    )
-    chunks = splitter.split_text(md)
+    out_dir = Path(images_dir)
+    out_dir.mkdir(parents=True, exist_ok=True)
 
-    doc_id = doc_id_for(file_path)
+    pdf = fitz.open(str(p))
     images_out = []
-    images_root = Path(images_dir)
-    images_root.mkdir(parents=True, exist_ok=True)
 
-    pictures = getattr(doc, "pictures", [])
-    for idx, pic in enumerate(pictures):
-        try:
-            img = pic.get_image(doc)
-        except Exception:
-            img = None
-        if img is None:
-            continue
+    for page_idx in range(len(pdf)):
+        page = pdf[page_idx]
+        img_list = page.get_images(full=True)  # lista immagini nella pagina
 
-        image_name = f"{doc_id}_img_{idx:04d}.png"
-        image_path = images_root / image_name
-        try:
-            img.save(image_path)
-        except Exception:
-            continue
+        for img_idx, img in enumerate(img_list):
+            xref = img[0]
+            base = pdf.extract_image(xref)
+            img_bytes = base["image"]
+            ext = base.get("ext", "png")
 
-        caption = None
-        try:
-            caption = pic.caption_text(doc).strip() or None
-        except Exception:
-            caption = None
+            image_name = f"{doc_id}_p{page_idx+1:03d}_img{img_idx:03d}.{ext}"
+            image_path = out_dir / image_name
 
-        page_no = None
-        try:
-            if getattr(pic, "prov", None):
-                page_no = pic.prov[0].page_no
-        except Exception:
-            page_no = None
+            with open(image_path, "wb") as f:
+                f.write(img_bytes)
 
-        images_out.append(
-            {
-                "image_id": idx,
-                "image_path": str(image_path),
-                "caption": caption,
-                "page_no": page_no,
-            }
-        )
+            images_out.append(
+                {
+                    "image_id": f"{page_idx}_{img_idx}",
+                    "image_path": str(image_path),
+                    "page_no": page_idx + 1,
+                    "caption": None,  # PyMuPDF non estrae caption in modo affidabile
+                }
+            )
+
+    pdf.close()
+    return images_out
+
+
+def extract_text_and_images(file_path: str, chunk_size=2000, chunk_overlap=300) -> dict:
+
+    # testo con Docling (light, ti funziona già)
+    text_data = extract_text_chunks_docling(file_path, chunk_size, chunk_overlap)
+
+    # immagini con PyMuPDF (zero HuggingFace)
+    images = extract_images_pymupdf(file_path)
 
     return {
-        "doc_id": doc_id,
+        "doc_id": text_data["doc_id"],
         "source_path": file_path,
-        "chunks": [{"chunk_id": i, "text": t} for i, t in enumerate(chunks)],
-        "images": images_out,
+        "chunks": text_data["chunks"],
+        "images": images,
     }
 
+
+#def main():
+#    from PIL import Image
+#
+#    project_root = Path(__file__).resolve().parents[1]
+#    pdf_path = project_root / "docs" / "manuale-operativo-firma-digitale.pdf"
+#
+#    data = extract_text_and_images(str(pdf_path), chunk_size=2000, chunk_overlap=300)
+#
+#    # apri le prime 3 immagini
+#    for img in data["images"][:3]:
+#        Image.open(img["image_path"]).show()
+#
+#
+#if __name__ == "__main__":
+#    ##main()

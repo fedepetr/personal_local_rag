@@ -1,6 +1,7 @@
 from dataclasses import dataclass
 from datetime import datetime
 from pathlib import Path
+import os
 
 from rag.retrieval import Retriever
 from rag.llm_ollama import generate
@@ -41,9 +42,9 @@ RISPOSTA:
 
 def _safe_relpath(path: str, base_dir: Path) -> str:
     try:
-        return str(Path(path).resolve().relative_to(base_dir.resolve()))
+        return os.path.relpath(str(Path(path).resolve()), str(base_dir.resolve()))
     except Exception:
-        return str(Path(path).resolve())
+        return str(Path(path))
 
 def save_answer_report(
     query: str,
